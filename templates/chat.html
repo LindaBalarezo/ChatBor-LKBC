@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChatBot-LKBC</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 ChatBot-LKBC</h1>
+
+   <div class="header-actions">
+  <button id="new-convo-btn" aria-label="Nueva conversación">🧹 Nueva conversación</button>
+</div>
+
+
+    <div id="chat-box" aria-live="polite" aria-label="Historial del chat"></div>
+
+    <form id="input-area" onsubmit="event.preventDefault(); sendMessage();">
+      <input
+        type="text"
+        id="message"
+        placeholder="Escribe tu mensaje..."
+        autocomplete="off"
+        aria-label="Mensaje del usuario"
+      />
+      <button type="submit" id="send-btn" aria-label="Enviar mensaje">📨 Enviar</button>
+    </form>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById("chat-box");
+    const input = document.getElementById("message");
+    const sendBtn = document.getElementById("send-btn");
+    const newConvoBtn = document.getElementById("new-convo-btn");
+
+    function appendMessage(role, name, text) {
+      const div = document.createElement("div");
+      div.className = role;
+      div.innerHTML = `<strong>${name}:</strong> ${text}`;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const msg = input.value.trim();
+      if (!msg) return;
+      appendMessage("user", "Tú", msg);
+      input.value = "";
+      input.focus();
+
+      try {
+        const res = await fetch("/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg }),
+        });
+
+        if (!res.ok) {
+          appendMessage("bot", "ChatBot-Linda", "⚠️ Error al comunicarse con el servidor.");
+          return;
+        }
+
+        const data = await res.json();
+        appendMessage("bot", "ChatBot-Linda", data.reply);
+      } catch (error) {
+        appendMessage("bot", "ChatBot-Linda", "🚫 Error de conexión.");
+      }
+    }
+
+    function newConversation() {
+      chatBox.innerHTML = "";
+      input.value = "";
+      input.focus();
+      fetch("/new_conversation", { method: "POST" });
+    }
+
+    newConvoBtn.addEventListener("click", newConversation);
+    sendBtn.addEventListener("click", sendMessage);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
+</html>
